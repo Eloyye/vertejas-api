@@ -5,16 +5,34 @@ type DeckObject = Card | Deck;
 
 export type Deck = { type: "deck"; contents: DeckObject[] };
 
-// the default behavior is that when you draw a deck, you have to get all the cards from the subdecks
-function draw(deck: Deck): Card | null {
-  const sampledObject = uniformSample<DeckObject>(deck.contents);
-  if (sampledObject === null) {
-    return null;
+export function sampleUniformlyFromAllCards(deck: Deck): Card | null {
+  const decks = deckNodesToAllCards(deck.contents);
+  return uniformSample(decks);
+}
+
+function deckNodesToAllCards(deckObjects: DeckObject[]): Card[] {
+  const resCards = [] as Card[];
+  for (const deckObject of deckObjects) {
+    resCards.push(...toCardContents(deckObject));
   }
-  switch (sampledObject.type) {
+  return resCards;
+}
+
+function toCardContents(deckObjects: DeckObject): Card[] {
+  switch (deckObjects.type) {
     case "deck":
-      return draw(sampledObject);
+      const resCards = [] as Card[];
+      for (const deck of deckObjects.contents) {
+        const cards = toCardContents(deck);
+        if (cards.length === 0) {
+          continue;
+        }
+        resCards.push(...cards);
+      }
+      return resCards;
     case "card":
-      return sampledObject;
+      return [deckObjects];
+    default:
+      throw new Error(`Invalid deck object type`);
   }
 }
